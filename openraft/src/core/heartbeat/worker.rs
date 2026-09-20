@@ -1,7 +1,6 @@
 use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
-use std::time::Duration;
 
 use futures::FutureExt;
 
@@ -79,7 +78,7 @@ where
                 continue;
             };
 
-            let timeout = Duration::from_millis(self.config.heartbeat_interval);
+            let timeout = self.config.append_entries_rpc_timeout();
             let option = RPCOption::new(timeout);
 
             let payload = AppendEntriesRequest {

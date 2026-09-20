@@ -300,7 +300,7 @@ where
 
         let my_id = self.id;
         let my_vote = *self.engine.state.vote_ref();
-        let ttl = Duration::from_millis(self.config.heartbeat_interval);
+        let ttl = self.config.append_entries_rpc_timeout();
         let eff_mem = self.engine.state.membership_state.effective().clone();
         let core_tx = self.tx_notification.clone();
 

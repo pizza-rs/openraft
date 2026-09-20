@@ -128,6 +128,24 @@ pub struct Config {
     #[clap(long, default_value = "50")]
     pub heartbeat_interval: u64,
 
+    /// The client-side deadline for every `append_entries` RPC: periodic
+    /// heartbeats, log replication, and quorum reads (`check_is_leader`), in
+    /// milliseconds.
+    ///
+    /// `0` (the default) keeps the historical behavior of using
+    /// `heartbeat_interval` as the RPC deadline. On a network where the
+    /// inter-node RTT approaches or exceeds `heartbeat_interval` — WAN /
+    /// cross-datacenter links — every such RPC is abandoned client-side
+    /// before the reply can arrive: the follower keeps resetting its
+    /// election timer from the delivered heartbeats, but the leader-side
+    /// liveness signals (heartbeat progress, replication state) freeze, and
+    /// any leader-metric-driven failure detector then amputates healthy
+    /// followers. On such links set this to the worst-case RTT plus margin,
+    /// well below the election and failure-detection timeouts.
+    #[clap(long, default_value = "0")]
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub append_entries_rpc_timeout: u64,
+
     /// The timeout for sending then installing the last snapshot segment,
     /// in millisecond. It is also used as the timeout for sending a non-last segment, if
     /// `send_snapshot_timeout` is 0.
@@ -262,6 +280,20 @@ impl Config {
         Duration::from_millis(self.install_snapshot_timeout)
     }
 
+    /// Effective client-side deadline for `append_entries` RPCs (periodic
+    /// heartbeats, log replication, quorum reads).
+    ///
+    /// `append_entries_rpc_timeout == 0` selects the legacy deadline,
+    /// `heartbeat_interval`; a non-zero value is used verbatim.
+    pub fn append_entries_rpc_timeout(&self) -> Duration {
+        let ms = if self.append_entries_rpc_timeout == 0 {
+            self.heartbeat_interval
+        } else {
+            self.append_entries_rpc_timeout
+        };
+        Duration::from_millis(ms)
+    }
+
     /// Get the timeout for sending a non-last snapshot segment.
     #[deprecated(
         since = "0.9.0",
@@ -299,6 +331,15 @@ impl Config {
         if self.election_timeout_min <= self.heartbeat_interval {
             return Err(ConfigError::ElectionTimeoutLTHeartBeat {
                 election_timeout_min: self.election_timeout_min,
+                heartbeat_interval: self.heartbeat_interval,
+            });
+        }
+
+        // 0 means "use heartbeat_interval" (see `append_entries_rpc_timeout`);
+        // any explicit value below the cadence it accompanies is a mistake.
+        if self.append_entries_rpc_timeout != 0 && self.append_entries_rpc_timeout < self.heartbeat_interval {
+            return Err(ConfigError::AppendEntriesTimeoutLTHeartBeat {
+                append_entries_rpc_timeout: self.append_entries_rpc_timeout,
                 heartbeat_interval: self.heartbeat_interval,
             });
         }

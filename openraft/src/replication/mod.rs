@@ -426,14 +426,14 @@ where
         };
 
         // Send the payload.
+        let the_timeout = self.config.append_entries_rpc_timeout();
         tracing::debug!(
             payload = display(&payload),
             now = display(leader_time.display()),
             "start sending append_entries, timeout: {:?}",
-            self.config.heartbeat_interval
+            the_timeout
         );
 
-        let the_timeout = Duration::from_millis(self.config.heartbeat_interval);
         let option = RPCOption::new(the_timeout);
         let res = C::timeout(the_timeout, self.network.append_entries(payload, option)).await;
 

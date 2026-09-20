@@ -20,6 +20,12 @@ pub enum ConfigError {
         heartbeat_interval: u64,
     },
 
+    #[error("append_entries_rpc_timeout({append_entries_rpc_timeout}) must be 0 (auto: heartbeat_interval) or >= heartbeat_interval({heartbeat_interval})")]
+    AppendEntriesTimeoutLTHeartBeat {
+        append_entries_rpc_timeout: u64,
+        heartbeat_interval: u64,
+    },
+
     #[error("snapshot policy string is invalid: '{invalid:?}' expect: '{syntax}'")]
     InvalidSnapshotPolicy { invalid: String, syntax: String },
 
