@@ -168,20 +168,14 @@ fn test_append_entries_rpc_timeout_defaults_to_heartbeat_interval() {
     // 0 is the default and selects the legacy deadline.
     let cfg = Config::default();
     assert_eq!(0, cfg.append_entries_rpc_timeout);
-    assert_eq!(
-        Duration::from_millis(50),
-        cfg.append_entries_rpc_timeout()
-    );
+    assert_eq!(Duration::from_millis(50), cfg.append_entries_rpc_timeout());
 
     // An explicit value is used verbatim (WAN / cross-datacenter profile).
     let cfg = Config {
         append_entries_rpc_timeout: 1500,
         ..Default::default()
     };
-    assert_eq!(
-        Duration::from_millis(1500),
-        cfg.append_entries_rpc_timeout()
-    );
+    assert_eq!(Duration::from_millis(1500), cfg.append_entries_rpc_timeout());
     assert!(cfg.validate().is_ok());
 
     // Below the heartbeat cadence it accompanies: a config mistake.
@@ -191,11 +185,8 @@ fn test_append_entries_rpc_timeout_defaults_to_heartbeat_interval() {
     };
     let res = config.validate();
     let err = res.unwrap_err();
-    assert_eq!(
-        err,
-        ConfigError::AppendEntriesTimeoutLTHeartBeat {
-            append_entries_rpc_timeout: 10,
-            heartbeat_interval: 50,
-        }
-    );
+    assert_eq!(err, ConfigError::AppendEntriesTimeoutLTHeartBeat {
+        append_entries_rpc_timeout: 10,
+        heartbeat_interval: 50,
+    });
 }
